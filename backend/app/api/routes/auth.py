@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import random
 import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from twilio.rest import Client
+from app.core.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -29,12 +34,46 @@ async def send_otp(request: SendOtpRequest):
     # Store it
     _otp_store[contact] = otp_code
     
-    # Simulate sending by printing to console
-    print(f"\n=========================================")
-    print(f"MOCK OTP NOTIFICATION")
-    print(f"To: {contact}")
-    print(f"Your RythuMitra AI verification code is: {otp_code}")
-    print(f"=========================================\n")
+    is_email = "@" in contact
+    
+    try:
+        if is_email:
+            if settings.SMTP_SERVER and settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
+                # Send real email
+                msg = MIMEMultipart()
+                msg['From'] = settings.SMTP_USERNAME
+                msg['To'] = contact
+                msg['Subject'] = "Your RythuMitra AI Verification Code"
+                
+                body = f"Your one-time password (OTP) is: {otp_code}\n\nDo not share this code with anyone."
+                msg.attach(MIMEText(body, 'plain'))
+                
+                server = smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT)
+                server.starttls()
+                server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+                server.send_message(msg)
+                server.quit()
+                print(f"Real email sent to {contact}")
+            else:
+                # Fallback to mock
+                print(f"\n[MOCK EMAIL] To: {contact} | OTP: {otp_code}\n")
+        else:
+            if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER:
+                # Send real SMS
+                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                message = client.messages.create(
+                    body=f"Your RythuMitra AI verification code is: {otp_code}",
+                    from_=settings.TWILIO_PHONE_NUMBER,
+                    to=contact
+                )
+                print(f"Real SMS sent to {contact}, SID: {message.sid}")
+            else:
+                # Fallback to mock
+                print(f"\n[MOCK SMS] To: {contact} | OTP: {otp_code}\n")
+    except Exception as e:
+        logger.error(f"Error sending OTP to {contact}: {e}")
+        # Even if sending fails, we fallback to mock so the user can test locally
+        print(f"\n[MOCK FALLBACK] To: {contact} | OTP: {otp_code} | Error: {e}\n")
     
     return {"success": True, "message": "OTP sent successfully"}
 

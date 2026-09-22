@@ -11,3 +11,4 @@ google-generativeai
 python-multipart
 Pillow
 httpx
+twilio
