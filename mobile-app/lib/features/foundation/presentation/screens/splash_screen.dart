@@ -4,6 +4,8 @@ import '../../../../core/services/network_service.dart';
 import '../../../profile/services/profile_storage_service.dart';
 import 'language_selection_screen.dart';
 import 'main_screen.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../profile/presentation/screens/initial_profile_setup_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final StorageService storageService;
@@ -34,19 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    if (widget.storageService.hasCompletedLanguageSelection()) {
-      // Returning user, skip language selection
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => MainScreen(
-            storageService: widget.storageService,
-            profileStorageService: widget.profileStorageService,
-            networkService: widget.networkService,
-          ),
-        ),
-      );
-    } else {
-      // First-time user
+    if (!widget.storageService.hasCompletedLanguageSelection()) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => LanguageSelectionScreen(
@@ -56,6 +46,39 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
       );
+    } else if (!widget.storageService.isLoggedIn()) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => LoginScreen(
+            storageService: widget.storageService,
+            profileStorageService: widget.profileStorageService,
+            networkService: widget.networkService,
+          ),
+        ),
+      );
+    } else {
+      final profile = widget.profileStorageService.getFarmerProfile();
+      if (profile == null || profile.name.isEmpty || profile.location.isEmpty) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => InitialProfileSetupScreen(
+              storageService: widget.storageService,
+              profileStorageService: widget.profileStorageService,
+              networkService: widget.networkService,
+            ),
+          ),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => MainScreen(
+              storageService: widget.storageService,
+              profileStorageService: widget.profileStorageService,
+              networkService: widget.networkService,
+            ),
+          ),
+        );
+      }
     }
   }
 

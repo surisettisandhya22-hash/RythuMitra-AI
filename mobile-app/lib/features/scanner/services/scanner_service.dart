@@ -62,7 +62,7 @@ class ScannerService {
       
       request.files.add(multipartFile);
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 45));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 180));
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {

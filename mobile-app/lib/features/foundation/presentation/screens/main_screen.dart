@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/localization/app_localizations.dart';
 import 'home_screen.dart';
-import '../../../ai_assistant/presentation/screens/ai_assistant_screen.dart';
-import '../../../profile/presentation/screens/my_farm_dashboard.dart';
+import '../../../community/presentation/screens/community_screen.dart';
+import '../../../market/presentation/screens/market_screen.dart';
+import '../../../market/services/market_service.dart';
 import '../../../profile/services/profile_storage_service.dart';
-import '../../../planner/presentation/screens/daily_planner_screen.dart';
 import '../../../planner/services/task_storage_service.dart';
-
 import 'more_screen.dart';
 import '../../../scanner/presentation/widgets/scanner_entry_helper.dart';
 import '../../../scanner/services/scanner_service.dart';
@@ -16,8 +15,6 @@ import '../../../weather/data/repositories/weather_repository.dart';
 
 import '../../../../core/services/network_service.dart';
 import '../../../voice/presentation/screens/voice_command_screen.dart';
-import '../../../market/presentation/screens/market_screen.dart';
-import '../../../market/services/market_service.dart';
 import '../../../scanner/presentation/screens/crop_health_screen.dart';
 import '../../../emergency/presentation/screens/emergency_help_screen.dart';
 import '../../../emergency/services/emergency_storage_service.dart';
@@ -49,7 +46,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  bool _autoStartListening = false;
   late final ScannerService _scannerService;
   late final WeatherRepository _weatherRepository;
   late final TaskStorageService _taskService;
@@ -67,15 +63,11 @@ class _MainScreenState extends State<MainScreen> {
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
-      if (index != 1) {
-        _autoStartListening = false;
-      }
     });
   }
 
   void _navigateToAiAssistantWithVoice() {
     setState(() {
-      _autoStartListening = true;
       _currentIndex = 1;
     });
   }
@@ -100,12 +92,16 @@ class _MainScreenState extends State<MainScreen> {
       case 'home':
         _onTabTapped(0);
         break;
-      case 'ai_assistant':
+      case 'community':
         _onTabTapped(1);
         break;
-      case 'my_crops':
-      case 'profile':
+      case 'market':
+      case 'market_prices':
         _onTabTapped(2);
+        break;
+      case 'profile':
+      case 'more':
+        _onTabTapped(3);
         break;
       case 'alerts':
         _onTabTapped(3);
@@ -114,15 +110,7 @@ class _MainScreenState extends State<MainScreen> {
         // No direct weather tab, switch to home where weather is visible
         _onTabTapped(0);
         break;
-      case 'market_prices':
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => MarketScreen(
-            marketService: _marketService,
-            profileStorageService: widget.profileStorageService,
-            networkService: widget.networkService,
-          ),
-        ));
-        break;
+
       case 'crop_health':
         Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => CropHealthScreen(
@@ -229,25 +217,11 @@ class _MainScreenState extends State<MainScreen> {
         onNavigateToAiAssistant: _navigateToAiAssistantWithVoice,
         onNavigateToVoiceCommand: _navigateToVoiceCommand,
       ),
-      AIAssistantScreen(
-        storageService: widget.storageService,
+      const CommunityScreen(),
+      MarketScreen(
+        marketService: _marketService,
         profileStorageService: widget.profileStorageService,
-        weatherRepository: _weatherRepository,
         networkService: widget.networkService,
-        autoStartListening: _autoStartListening,
-      ),
-      MyFarmDashboard(
-        storageService: widget.storageService,
-        profileStorageService: widget.profileStorageService,
-        weatherRepository: _weatherRepository,
-        networkService: widget.networkService,
-        onNavigateToAiAssistant: _navigateToAiAssistantWithVoice,
-        onNavigateToVoiceCommand: _navigateToVoiceCommand,
-      ),
-      DailyPlannerScreen(
-        taskService: _taskService,
-        profileStorageService: widget.profileStorageService,
-        storageService: widget.storageService,
       ),
       MoreScreen(
         storageService: widget.storageService,
@@ -287,24 +261,20 @@ class _MainScreenState extends State<MainScreen> {
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
         items: [
           BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.grass),
             label: AppLocalizations.of(context).translate('nav_home'),
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.smart_toy),
-            label: AppLocalizations.of(context).translate('nav_ai'),
+            icon: const Icon(Icons.forum),
+            label: AppLocalizations.of(context).translate('nav_community'),
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.agriculture),
-            label: AppLocalizations.of(context).translate('nav_farm'),
+            icon: const Icon(Icons.storefront),
+            label: AppLocalizations.of(context).translate('nav_market'),
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.task_alt),
-            label: AppLocalizations.of(context).translate('nav_tasks'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.menu),
-            label: AppLocalizations.of(context).translate('nav_more'),
+            icon: const Icon(Icons.person),
+            label: AppLocalizations.of(context).translate('nav_profile'),
           ),
         ],
       ),

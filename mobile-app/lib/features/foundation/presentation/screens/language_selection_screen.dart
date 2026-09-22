@@ -5,6 +5,8 @@ import '../../../../core/services/network_service.dart';
 import '../../../profile/services/profile_storage_service.dart';
 import 'main_screen.dart';
 import '../widgets/language_tile.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../profile/presentation/screens/initial_profile_setup_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   final StorageService storageService;
@@ -79,15 +81,40 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       if (widget.isFromSettings) {
         Navigator.of(context).pop();
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => MainScreen(
-              storageService: widget.storageService,
-              profileStorageService: widget.profileStorageService,
-              networkService: widget.networkService,
+        if (!widget.storageService.isLoggedIn()) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => LoginScreen(
+                storageService: widget.storageService,
+                profileStorageService: widget.profileStorageService,
+                networkService: widget.networkService,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          final profile = widget.profileStorageService.getFarmerProfile();
+          if (profile == null || profile.name.isEmpty || profile.location.isEmpty) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => InitialProfileSetupScreen(
+                  storageService: widget.storageService,
+                  profileStorageService: widget.profileStorageService,
+                  networkService: widget.networkService,
+                ),
+              ),
+            );
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => MainScreen(
+                  storageService: widget.storageService,
+                  profileStorageService: widget.profileStorageService,
+                  networkService: widget.networkService,
+                ),
+              ),
+            );
+          }
+        }
       }
     }
   }

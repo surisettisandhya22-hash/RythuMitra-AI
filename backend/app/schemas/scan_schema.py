@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 
 class ScanAnalysisResult(BaseModel):
+    cropName: Optional[str] = Field(None, description="The identified or inferred name of the crop, if applicable.")
     summary: str = Field(..., description="A short farmer-friendly summary of the observation")
     possibleIssues: List[str] = Field(..., description="List of possible issues, keeping uncertainty in mind")
     visibleSymptoms: List[str] = Field(..., description="List of clearly visible symptoms in the image")

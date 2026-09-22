@@ -25,7 +25,7 @@ class ApiService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 45));
+      ).timeout(const Duration(seconds: 180));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

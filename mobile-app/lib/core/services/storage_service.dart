@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StorageService {
   static const String _keySelectedLanguage = 'selectedLanguage';
   static const String _keyHasCompletedLanguageSelection = 'hasCompletedLanguageSelection';
+  static const String _keyIsLoggedIn = 'isLoggedIn';
 
   late SharedPreferences _prefs;
   late final ValueNotifier<String> languageNotifier;
@@ -28,6 +29,14 @@ class StorageService {
 
   bool hasCompletedLanguageSelection() {
     return _prefs.getBool(_keyHasCompletedLanguageSelection) ?? false;
+  }
+
+  Future<void> setLoggedIn(bool loggedIn) async {
+    await _prefs.setBool(_keyIsLoggedIn, loggedIn);
+  }
+
+  bool isLoggedIn() {
+    return _prefs.getBool(_keyIsLoggedIn) ?? false;
   }
 
   Future<void> setAutoSpeakEnabled(bool enabled) async {

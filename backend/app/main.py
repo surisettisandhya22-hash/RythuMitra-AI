@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import health, chat, scanner, market, weather
+from app.api.routes import health, chat, scanner, market, weather, auth
 from app.core.config import settings
 
 app = FastAPI(
@@ -24,6 +24,7 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(scanner.router, prefix="/api", tags=["scanner"])
 app.include_router(market.router, prefix="/api/market", tags=["market"])
 app.include_router(weather.router, prefix="/api/v1", tags=["weather"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 @app.get("/")
 def read_root():

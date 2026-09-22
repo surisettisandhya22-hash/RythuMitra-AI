@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 
 class BackendConfigService {
   static const String _keyBackendUrl = 'backendUrl';
-  static const String _defaultDevBackendUrl = 'http://10.10.10.10:8000';
-  static const String _productionBackendUrl = 'https://rythumitra-api.onrender.com';
+  static const String _defaultDevBackendUrl = 'https://rythumitra-ai-86bt.onrender.com';
+  static const String _productionBackendUrl = 'https://rythumitra-ai-86bt.onrender.com';
 
   static late SharedPreferences _prefs;
   static final ValueNotifier<String> backendUrlNotifier = ValueNotifier<String>(_defaultDevBackendUrl);
@@ -18,7 +18,12 @@ class BackendConfigService {
     if (kReleaseMode) {
       return _productionBackendUrl;
     }
-    return _prefs.getString(_keyBackendUrl) ?? _defaultDevBackendUrl;
+    try {
+      return _prefs.getString(_keyBackendUrl) ?? _productionBackendUrl;
+    } catch (e) {
+      // _prefs might not be initialized yet
+      return _productionBackendUrl;
+    }
   }
 
   static Future<void> setBackendUrl(String url) async {

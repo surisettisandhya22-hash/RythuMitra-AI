@@ -7,6 +7,7 @@ import '../../../profile/services/profile_storage_service.dart';
 import '../../../profile/data/models/crop_profile.dart';
 import '../../services/scanner_service.dart';
 import 'analysis_result_screen.dart';
+import '../../data/models/scan_result.dart';
 
 class ImagePreviewScreen extends StatefulWidget {
   final File imageFile;
@@ -65,22 +66,36 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
 
     final languageId = widget.storageService.getSelectedLanguage() ?? 'en';
 
-    final result = await widget.scannerService.analyzeImage(
-      imageFile: widget.imageFile,
-      languageId: languageId,
-      cropName: _selectedCropName,
-      description: _descriptionController.text.trim(),
-    );
+    final autoDetectStr = AppLocalizations.of(context).translate('auto_detect') == 'auto_detect' ? 'Auto Detect' : AppLocalizations.of(context).translate('auto_detect');
+    final actualCropName = (_selectedCropName == autoDetectStr) ? null : _selectedCropName;
 
-    setState(() {
-      _isAnalyzing = false;
-    });
+    ScanResult? result;
+    try {
+      result = await widget.scannerService.analyzeImage(
+        imageFile: widget.imageFile,
+        languageId: languageId,
+        cropName: actualCropName,
+        description: _descriptionController.text.trim(),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isAnalyzing = false;
+      });
+    }
 
     if (result != null) {
       if (mounted) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (_) => AnalysisResultScreen(
-            scanResult: result,
+            scanResult: result!,
             imageFile: widget.imageFile,
             storageService: widget.storageService,
             profileStorageService: widget.profileStorageService,
@@ -93,10 +108,9 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
         ));
       }
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('analysis_failed'))),
-        );
+      if (mounted && result == null && !_isAnalyzing) {
+        // If result is null and we are not navigating, we might have already shown an error snackbar in the catch block.
+        // We can show a generic one if no exception was caught but it still failed.
       }
     }
   }
@@ -105,14 +119,24 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
   Widget build(BuildContext context) {
     final crops = widget.profileStorageService.getCrops();
     final cropNames = crops.map((c) => c.cropName).toList();
+    
+    // Add Auto Detect as the first option
+    final String autoDetectStr = AppLocalizations.of(context).translate('auto_detect') == 'auto_detect' ? 'Auto Detect' : AppLocalizations.of(context).translate('auto_detect');
+    if (!cropNames.contains(autoDetectStr)) {
+      cropNames.insert(0, autoDetectStr);
+    }
+    
     if (!cropNames.contains('Other')) {
       cropNames.add('Other');
     }
     
     // Ensure selected crop is in list
     if (_selectedCropName != null && !cropNames.contains(_selectedCropName)) {
-      cropNames.insert(0, _selectedCropName!);
+      cropNames.insert(1, _selectedCropName!);
     }
+    
+    // Default to auto detect if nothing selected
+    final currentSelection = _selectedCropName ?? autoDetectStr;
 
     return Scaffold(
       appBar: AppBar(
@@ -153,7 +177,7 @@ class _ImagePreviewScreenState extends State<ImagePreviewScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    initialValue: _selectedCropName,
+                    initialValue: currentSelection,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

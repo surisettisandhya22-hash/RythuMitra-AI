@@ -100,6 +100,7 @@ class AIService:
         
         Respond ONLY with a JSON object in this exact format, with no markdown formatting around it:
         {
+          "cropName": "The detected or verified crop name (e.g. Rice, Tomato). If you cannot tell, use null.",
           "summary": "A short farmer-friendly summary of the observation.",
           "possibleIssues": ["Issue 1", "Issue 2"],
           "visibleSymptoms": ["Symptom 1", "Symptom 2"],

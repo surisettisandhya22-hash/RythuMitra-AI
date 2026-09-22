@@ -53,9 +53,25 @@ class _MarketScreenState extends State<MarketScreen> {
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController(text: widget.initialCrop ?? '');
-    if (widget.initialCrop != null && widget.initialCrop!.isNotEmpty) {
-      _fetchPrices(widget.initialCrop!);
+    
+    String? startCrop = widget.initialCrop;
+    if (startCrop == null || startCrop.isEmpty) {
+      final crops = widget.profileStorageService.cropsNotifier.value;
+      if (crops.isNotEmpty) {
+        startCrop = crops.first.cropName;
+      }
+    }
+
+    _searchController = TextEditingController(text: startCrop ?? '');
+    if (startCrop != null && startCrop.isNotEmpty) {
+      // Need to defer the fetch slightly if it causes build issues, but it should be fine here.
+      // Actually fetchPrices calls setState, which is fine in initState before build.
+      // However, to be safe from some network errors trying to show snackbars, etc.:
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _fetchPrices(startCrop!);
+        }
+      });
     }
   }
 
