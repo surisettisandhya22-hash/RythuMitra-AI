@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/network_service.dart';
@@ -30,11 +31,80 @@ class _OtpScreenState extends State<OtpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _otpController = TextEditingController();
   bool _isLoading = false;
+  
+  Timer? _timer;
+  int _countdown = 45;
+  bool _isResending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    setState(() {
+      _countdown = 45;
+    });
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown > 0) {
+        if (mounted) {
+          setState(() {
+            _countdown--;
+          });
+        }
+      } else {
+        timer.cancel();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _otpController.dispose();
     super.dispose();
+  }
+
+  String _maskContact(String contact) {
+    if (contact.contains('@')) {
+      final parts = contact.split('@');
+      if (parts[0].length > 2) {
+        return '${parts[0].substring(0, 2)}***@${parts[1]}';
+      }
+      return contact;
+    } else {
+      if (contact.length > 4) {
+        return '******${contact.substring(contact.length - 4)}';
+      }
+      return contact;
+    }
+  }
+
+  Future<void> _handleResend() async {
+    setState(() {
+      _isResending = true;
+    });
+    
+    final errorCategory = await widget.authService.sendOtp(widget.contact);
+    
+    if (mounted) {
+      setState(() {
+        _isResending = false;
+      });
+      
+      if (errorCategory == null) {
+        _startTimer();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP resent successfully.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to resend OTP ($errorCategory).')),
+        );
+      }
+    }
   }
 
   Future<void> _handleVerify() async {
@@ -44,14 +114,15 @@ class _OtpScreenState extends State<OtpScreen> {
       });
 
       final otp = _otpController.text.trim();
-      final isValid = await widget.authService.verifyOtp(widget.contact, otp);
+      final token = await widget.authService.verifyOtp(widget.contact, otp);
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
 
-        if (isValid) {
+        if (token != null) {
+          await widget.storageService.setAuthToken(token);
           await widget.storageService.setLoggedIn(true);
           
           if (!mounted) return;
@@ -82,7 +153,7 @@ class _OtpScreenState extends State<OtpScreen> {
           }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid OTP. Please try again.')),
+            const SnackBar(content: Text('Invalid or expired OTP. Please try again.')),
           );
         }
       }
@@ -115,7 +186,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Enter One Time Password',
+                  'Enter the OTP sent to',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -125,7 +196,7 @@ class _OtpScreenState extends State<OtpScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Sent to ${widget.contact}',
+                  _maskContact(widget.contact),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -141,7 +212,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   style: const TextStyle(fontSize: 24, letterSpacing: 8),
                   decoration: InputDecoration(
                     counterText: '',
-                    hintText: '----',
+                    hintText: '------',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -149,6 +220,9 @@ class _OtpScreenState extends State<OtpScreen> {
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter the OTP';
+                    }
+                    if (value.trim().length != 6) {
+                      return 'OTP must be 6 digits';
                     }
                     return null;
                   },
@@ -166,10 +240,27 @@ class _OtpScreenState extends State<OtpScreen> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'Verify & Login',
+                          'Verify OTP',
                           style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
                 ),
+                const SizedBox(height: 24),
+                if (_countdown > 0)
+                  Text(
+                    'Resend OTP in $_countdown seconds',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  )
+                else
+                  TextButton(
+                    onPressed: _isResending ? null : _handleResend,
+                    child: _isResending 
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(
+                          'Resend OTP',
+                          style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold),
+                        ),
+                  ),
               ],
             ),
           ),

@@ -5,49 +5,63 @@ import '../../../../core/config/api_config.dart';
 
 class AuthService {
   /// Sends an OTP to a given phone number or email via the backend.
-  Future<bool> sendOtp(String contact) async {
+  /// Returns null on success, or an error category string on failure.
+  Future<String?> sendOtp(String contact) async {
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/api/auth/send-otp');
+      final isEmail = contact.contains('@');
+      final endpoint = isEmail ? '/api/auth/request-email-otp' : '/api/auth/request-phone-otp';
+      final payload = isEmail ? {'email': contact} : {'phone': contact};
+
+      final uri = Uri.parse('${ApiConfig.baseUrl}$endpoint');
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'contact': contact}),
+        body: jsonEncode(payload),
       );
 
       if (response.statusCode == 200) {
-        return true;
+        return null; // Success
+      } else if (response.statusCode == 404) {
+        return 'ENDPOINT_NOT_FOUND';
+      } else if (response.statusCode == 429) {
+        return 'RATE_LIMIT_EXCEEDED';
+      } else if (response.statusCode == 400) {
+        return 'VALIDATION_ERROR';
+      } else if (response.statusCode >= 500) {
+        return 'SERVER_ERROR';
       } else {
-        debugPrint('Failed to send OTP: ${response.statusCode} - ${response.body}');
-        return false;
+        return 'PROVIDER_REQUEST_FAILED';
       }
     } catch (e) {
       debugPrint('Error sending OTP: $e');
-      return false;
+      return 'BACKEND_UNREACHABLE';
     }
   }
 
-  /// Verifies the OTP via the backend.
-  Future<bool> verifyOtp(String contact, String otp) async {
+  /// Verifies the OTP via the backend and returns the JWT token.
+  Future<String?> verifyOtp(String contact, String otp) async {
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/api/auth/verify-otp');
+      final isEmail = contact.contains('@');
+      final endpoint = isEmail ? '/api/auth/verify-email-otp' : '/api/auth/verify-phone-otp';
+      final payload = isEmail ? {'email': contact, 'otp': otp} : {'phone': contact, 'otp': otp};
+
+      final uri = Uri.parse('${ApiConfig.baseUrl}$endpoint');
       final response = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contact': contact,
-          'otp': otp,
-        }),
+        body: jsonEncode(payload),
       );
 
       if (response.statusCode == 200) {
-        return true;
+        final body = jsonDecode(response.body);
+        return body['token'] as String?;
       } else {
         debugPrint('Failed to verify OTP: ${response.statusCode} - ${response.body}');
-        return false;
+        return null;
       }
     } catch (e) {
       debugPrint('Error verifying OTP: $e');
-      return false;
+      return null;
     }
   }
 }

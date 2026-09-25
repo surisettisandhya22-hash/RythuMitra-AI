@@ -38,6 +38,14 @@ class StorageService {
   bool isLoggedIn() {
     return _prefs.getBool(_keyIsLoggedIn) ?? false;
   }
+  
+  Future<void> setAuthToken(String token) async {
+    await _prefs.setString('authToken', token);
+  }
+  
+  String? getAuthToken() {
+    return _prefs.getString('authToken');
+  }
 
   Future<void> setAutoSpeakEnabled(bool enabled) async {
     await _prefs.setBool('autoSpeakEnabled', enabled);

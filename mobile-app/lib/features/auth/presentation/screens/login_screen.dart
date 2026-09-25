@@ -4,6 +4,7 @@ import '../../../../core/services/network_service.dart';
 import '../../../profile/services/profile_storage_service.dart';
 import '../../services/auth_service.dart';
 import 'otp_screen.dart';
+import '../../../settings/presentation/screens/backend_settings_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final StorageService storageService;
@@ -27,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
+  bool _isEmail = true;
+
   @override
   void dispose() {
     _contactController.dispose();
@@ -40,14 +43,14 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       final contact = _contactController.text.trim();
-      final success = await _authService.sendOtp(contact);
+      final errorCategory = await _authService.sendOtp(contact);
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
 
-        if (success) {
+        if (errorCategory == null) {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => OtpScreen(
@@ -60,8 +63,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         } else {
+          String errorMessage = 'Failed to send OTP. Please try again.';
+          if (errorCategory == 'ENDPOINT_NOT_FOUND') {
+            errorMessage = 'Cloud Update Required (ENDPOINT_NOT_FOUND). Please push your backend code to Render.';
+          } else if (errorCategory == 'BACKEND_UNREACHABLE') {
+            errorMessage = 'Backend is unreachable (BACKEND_UNREACHABLE). Check your network or URL settings.';
+          } else if (errorCategory == 'RATE_LIMIT_EXCEEDED') {
+            errorMessage = 'Please wait before requesting another OTP (RATE_LIMIT_EXCEEDED).';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to send OTP. Please try again.')),
+            SnackBar(content: Text(errorMessage)),
           );
         }
       }
@@ -77,6 +89,20 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.green.shade900,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Backend Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BackendSettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -94,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'Welcome to RythuMitra AI',
+                  'Login to RythuMitra AI',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -102,29 +128,75 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.green.shade900,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter your Phone Number or Email to login',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isEmail = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _isEmail ? Colors.green.shade100 : Colors.grey.shade200,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            'Email',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _isEmail ? Colors.green.shade900 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isEmail = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isEmail ? Colors.green.shade100 : Colors.grey.shade200,
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            'Phone',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: !_isEmail ? Colors.green.shade900 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _contactController,
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: _isEmail ? TextInputType.emailAddress : TextInputType.phone,
                   decoration: InputDecoration(
-                    labelText: 'Phone or Email',
+                    labelText: _isEmail ? 'Email Address' : 'Phone Number (e.g. +91XXXXXXXXXX)',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    prefixIcon: const Icon(Icons.person),
+                    prefixIcon: Icon(_isEmail ? Icons.email : Icons.phone),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your phone number or email';
+                      return _isEmail ? 'Please enter your email' : 'Please enter your phone number';
+                    }
+                    if (_isEmail && !value.contains('@')) {
+                      return 'Please enter a valid email';
                     }
                     return null;
                   },
