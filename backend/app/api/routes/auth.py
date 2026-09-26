@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from twilio.rest import Client
 import jwt
 import os
+import httpx
 from typing import Optional
 from app.core.config import settings
 
@@ -102,7 +103,22 @@ async def request_email_otp(request: RequestEmailOtp):
     _store_otp(contact, otp_code)
     
     try:
-        if settings.SMTP_SERVER and settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
+        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN:
+            url = "https://comms.twilio.com/v1/Emails"
+            auth = (settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+            payload = {
+                "from": {"address": f"{settings.TWILIO_ACCOUNT_SID}@twilio.email", "name": "RythuMitra AI"},
+                "to": [{"address": contact}],
+                "content": {
+                    "subject": "Your RythuMitra AI Verification Code",
+                    "html": f"<h2>Welcome to RythuMitra AI!</h2><p>Your one-time password (OTP) is: <b>{otp_code}</b></p><p>This code will expire in 5 minutes. Do not share this code with anyone.</p>"
+                }
+            }
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(url, auth=auth, json=payload)
+                if resp.status_code >= 400:
+                    logger.error(f"Twilio Email API error: {resp.text}")
+        elif settings.SMTP_SERVER and settings.SMTP_USERNAME and settings.SMTP_PASSWORD:
             msg = MIMEMultipart()
             msg['From'] = settings.SMTP_USERNAME
             msg['To'] = contact
@@ -116,7 +132,7 @@ async def request_email_otp(request: RequestEmailOtp):
             server.send_message(msg)
             server.quit()
         else:
-            logger.warning(f"SMTP not configured. Mock Email to {contact}: {otp_code}")
+            logger.warning(f"SMTP/Twilio not configured. Mock Email to {contact}: {otp_code}")
     except Exception as e:
         logger.error(f"Error sending email OTP: {e}")
         # Return generic success to avoid leaking internal error info
