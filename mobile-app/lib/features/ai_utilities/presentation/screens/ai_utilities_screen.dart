@@ -7,6 +7,7 @@ import 'farm_calculator_screen.dart';
 import 'fertilizer_calculator_screen.dart';
 import 'soil_health_screen.dart';
 import '../../../crop_calendar/presentation/screens/crop_calendar_screen.dart';
+import '../../../khata/presentation/screens/farmer_khata_screen.dart';
 
 class AiUtilitiesScreen extends StatelessWidget {
   final StorageService storageService;
@@ -124,6 +125,20 @@ class AiUtilitiesScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => CropCalendarScreen(
+                          storageService: storageService,
+                          profileStorageService: profileStorageService,
+                        ),
+                      ));
+                    },
+                  ),
+                  _buildUtilityCard(
+                    context,
+                    title: 'Farmer Digital Khata',
+                    icon: Icons.account_balance_wallet,
+                    color: Colors.teal,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => FarmerKhataScreen(
                           storageService: storageService,
                           profileStorageService: profileStorageService,
                         ),

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import health, chat, scanner, market, weather, calculator, soil, community, fertilizer, irrigation, crop_calendar
+from app.api.routes import health, chat, scanner, market, weather, calculator, soil, community, fertilizer, irrigation, crop_calendar, khata
 from app.core.config import settings
 
 app = FastAPI(
@@ -30,6 +30,7 @@ app.include_router(irrigation.router, prefix="/api/irrigation", tags=["irrigatio
 app.include_router(soil.router, prefix="/api/soil", tags=["soil"])
 app.include_router(community.router, prefix="/api/community", tags=["community"])
 app.include_router(crop_calendar.router, prefix="/api/crop-calendar", tags=["crop-calendar"])
+app.include_router(khata.router, prefix="/api/khata", tags=["khata"])
 
 
 
