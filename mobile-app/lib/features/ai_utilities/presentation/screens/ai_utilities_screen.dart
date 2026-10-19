@@ -6,6 +6,7 @@ import 'document_explainer_screen.dart';
 import 'farm_calculator_screen.dart';
 import 'fertilizer_calculator_screen.dart';
 import 'soil_health_screen.dart';
+import '../../../crop_calendar/presentation/screens/crop_calendar_screen.dart';
 
 class AiUtilitiesScreen extends StatelessWidget {
   final StorageService storageService;
@@ -112,6 +113,20 @@ class AiUtilitiesScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => const SoilHealthScreen(),
+                      ));
+                    },
+                  ),
+                  _buildUtilityCard(
+                    context,
+                    title: 'Crop Calendar & Planner',
+                    icon: Icons.event_note,
+                    color: Colors.deepPurple,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => CropCalendarScreen(
+                          storageService: storageService,
+                          profileStorageService: profileStorageService,
+                        ),
                       ));
                     },
                   ),
