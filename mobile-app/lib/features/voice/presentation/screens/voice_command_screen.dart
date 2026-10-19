@@ -76,9 +76,26 @@ class _VoiceCommandScreenState extends State<VoiceCommandScreen> {
           setState(() {
             _recognizedText = text;
           });
-          
-          if (!_speechService.isListening && text.isNotEmpty) {
-             _processCommand(text, languageId);
+        }
+      },
+      onFinalResult: (finalText) {
+        if (mounted && finalText.trim().isNotEmpty) {
+          _speechService.stopListening();
+          _processCommand(finalText.trim(), languageId);
+        }
+      },
+      onStatus: (status) {
+        if (status == 'notListening' || status == 'done') {
+          if (mounted && _isListening) {
+            final pending = _recognizedText.trim();
+            if (pending.isNotEmpty) {
+              _processCommand(pending, languageId);
+            } else {
+              setState(() {
+                _isListening = false;
+                _statusMessage = 'Tap to Speak';
+              });
+            }
           }
         }
       },
@@ -192,7 +209,23 @@ class _VoiceCommandScreenState extends State<VoiceCommandScreen> {
               const SizedBox(height: 24),
               
               GestureDetector(
-                onTap: _isListening ? () => _speechService.stopListening() : _startListening,
+                onTap: () {
+                  if (_isListening) {
+                    _speechService.stopListening();
+                    final pending = _recognizedText.trim();
+                    final languageId = widget.storageService.getSelectedLanguage() ?? 'en';
+                    if (pending.isNotEmpty) {
+                      _processCommand(pending, languageId);
+                    } else {
+                      setState(() {
+                        _isListening = false;
+                        _statusMessage = 'Tap to Speak';
+                      });
+                    }
+                  } else {
+                    _startListening();
+                  }
+                },
                 child: Container(
                   width: 120,
                   height: 120,

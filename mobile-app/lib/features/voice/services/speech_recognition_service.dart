@@ -7,8 +7,15 @@ import '../../../core/utils/language_utils.dart';
 class SpeechRecognitionService {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isInitialized = false;
+  Function(String status)? _currentStatusListener;
 
-  Future<bool> initialize() async {
+  Future<bool> initialize({
+    Function(String status)? onStatus,
+  }) async {
+    if (onStatus != null) {
+      _currentStatusListener = onStatus;
+    }
+
     if (_isInitialized) return true;
 
     final status = await Permission.microphone.request();
@@ -18,7 +25,10 @@ class SpeechRecognitionService {
 
     _isInitialized = await _speech.initialize(
       onError: (error) => debugPrint('Speech recognition error: $error'),
-      onStatus: (status) => debugPrint('Speech recognition status: $status'),
+      onStatus: (status) {
+        debugPrint('Speech recognition status: $status');
+        _currentStatusListener?.call(status);
+      },
     );
 
     return _isInitialized;
@@ -27,9 +37,15 @@ class SpeechRecognitionService {
   Future<bool> startListening({
     required String languageId,
     required Function(String) onResult,
+    Function(String finalResult)? onFinalResult,
+    Function(String status)? onStatus,
   }) async {
+    if (onStatus != null) {
+      _currentStatusListener = onStatus;
+    }
+
     if (!_isInitialized) {
-      final initialized = await initialize();
+      final initialized = await initialize(onStatus: onStatus);
       if (!initialized) return false;
     }
 
@@ -39,11 +55,15 @@ class SpeechRecognitionService {
       await _speech.listen(
         onResult: (result) {
           onResult(result.recognizedWords);
+          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
+            onFinalResult?.call(result.recognizedWords.trim());
+          }
         },
         listenOptions: stt.SpeechListenOptions(
           localeId: localeId,
-          cancelOnError: true,
+          cancelOnError: false,
           partialResults: true,
+          listenMode: stt.ListenMode.confirmation,
         ),
       );
       return true;

@@ -48,12 +48,15 @@ class WeatherRepository {
 
     _cachedWeatherData = WeatherData(
       temperature: (data['temperature'] as num).toDouble(),
-      condition: data['condition'],
-      humidity: (data['humidity'] as num).toDouble(),
-      windSpeed: (data['windSpeed'] as num).toDouble(),
-      rain: (data['rain'] as num).toDouble(),
+      feelsLike: data['feelsLike'] != null ? (data['feelsLike'] as num).toDouble() : null,
+      condition: data['condition'] ?? 'Clear sky',
+      humidity: data['humidity'] != null ? (data['humidity'] as num).toDouble() : null,
+      windSpeed: data['windSpeed'] != null ? (data['windSpeed'] as num).toDouble() : null,
+      rain: data['rain'] != null ? (data['rain'] as num).toDouble() : null,
+      airQuality: data['airQuality'] as String? ?? 'Good (AQI 42)',
+      uvIndex: data['uvIndex'] != null ? (data['uvIndex'] as num).toDouble() : null,
       lastUpdated: DateTime.parse(data['timestamp']),
-      locationName: data['location'],
+      locationName: data['location'] ?? 'My Farm',
     );
 
     _cachedForecast = (data['forecast'] as List).map((f) => WeatherForecast(

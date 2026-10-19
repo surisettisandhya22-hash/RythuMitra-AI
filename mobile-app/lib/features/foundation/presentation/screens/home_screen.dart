@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../emergency/services/emergency_storage_service.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
@@ -8,16 +9,12 @@ import '../../../../core/config/api_config.dart';
 import '../widgets/app_header.dart';
 import '../widgets/greeting_card.dart';
 import '../widgets/voice_button.dart';
-import '../widgets/quick_action_card.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../widgets/section_title.dart';
-import 'action_placeholder_screen.dart';
 import '../../../weather/data/repositories/weather_repository.dart';
 import '../../../weather/presentation/widgets/weather_home_card.dart';
 import '../../../tasks/presentation/widgets/alerts_summary_card.dart';
 import '../../../market/presentation/widgets/market_summary_card.dart';
-import '../../../emergency/presentation/screens/emergency_help_screen.dart';
-import '../../../emergency/services/emergency_storage_service.dart';
 import '../../../tasks/services/reminder_storage_service.dart';
 import '../../../market/presentation/screens/market_screen.dart';
 import '../../../market/services/market_service.dart';
@@ -26,8 +23,15 @@ import '../../../scanner/services/scanner_service.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/network_service.dart';
 import '../../../search/presentation/screens/smart_search_screen.dart';
+import '../../../ai_utilities/presentation/screens/soil_health_screen.dart';
+import '../../../ai_utilities/presentation/screens/fertilizer_calculator_screen.dart';
+import '../../../irrigation/presentation/screens/irrigation_screen.dart';
+import '../../../community/presentation/screens/community_screen.dart';
 
 import '../../../profile/services/profile_storage_service.dart';
+import '../../../profile/presentation/screens/farmer_profile_details_screen.dart';
+import '../../../ai_assistant/presentation/screens/ai_assistant_screen.dart';
+import '../../../weather/presentation/screens/weather_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final StorageService storageService;
@@ -135,16 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _navigateToPlaceholder(String title, IconData icon) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ActionPlaceholderScreen(
-          title: title,
-          icon: icon,
-        ),
-      ),
-    );
-  }
+
 
   void _navigateToMarket() {
     Navigator.of(context).push(
@@ -171,11 +166,61 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _navigateToEmergencyHelp() {
+
+
+  void _navigateToClimate() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => EmergencyHelpScreen(
-          emergencyStorageService: EmergencyStorageService(),
+        builder: (_) => WeatherScreen(
+          weatherRepository: widget.weatherRepository,
+          profileStorageService: widget.profileStorageService,
+          networkService: widget.networkService,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToSoilHealth() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SoilHealthScreen()));
+  }
+
+  void _navigateToFertilizer() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FertilizerCalculatorScreen()));
+  }
+
+  void _navigateToIrrigation() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => IrrigationScreen(
+      storageService: widget.storageService,
+      profileStorageService: widget.profileStorageService,
+      networkService: widget.networkService,
+    )));
+  }
+
+  void _navigateToCommunity() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CommunityScreen()));
+  }
+
+  void _navigateToAiAssistant() {
+    if (widget.onNavigateToAiAssistant != null) {
+      widget.onNavigateToAiAssistant!();
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AIAssistantScreen(
+            storageService: widget.storageService,
+            profileStorageService: widget.profileStorageService,
+            networkService: widget.networkService,
+            weatherRepository: widget.weatherRepository,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FarmerProfileDetailsScreen(
           profileStorageService: widget.profileStorageService,
         ),
       ),
@@ -240,7 +285,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-              AppHeader(onSearchTap: _navigateToSearch),
+              AppHeader(
+                onSearchTap: _navigateToSearch,
+                onProfileTap: _navigateToProfile,
+              ),
               
               GreetingCard(
                 greeting: greeting,
@@ -261,38 +309,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 networkService: widget.networkService,
               ),
               
-              SectionTitle(title: AppLocalizations.of(context).translate('quick_actions')),
+              SectionTitle(title: AppLocalizations.of(context).translate('crop_dashboard')),
               
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: GridView.count(
-                  crossAxisCount: 2,
+                  crossAxisCount: 4,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.1,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.8,
                   children: [
-                    QuickActionCard(
-                      title: AppLocalizations.of(context).translate('quick_prices'),
-                      icon: Icons.currency_rupee,
-                      onTap: _navigateToMarket,
-                    ),
-                    QuickActionCard(
-                      title: AppLocalizations.of(context).translate('quick_diagnosis'),
-                      icon: Icons.local_florist_outlined,
-                      onTap: _navigateToCropHealth,
-                    ),
-                    QuickActionCard(
-                      title: AppLocalizations.of(context).translate('quick_schemes'),
-                      icon: Icons.description_outlined,
-                      onTap: () => _navigateToPlaceholder(AppLocalizations.of(context).translate('quick_schemes'), Icons.description_outlined),
-                    ),
-                    QuickActionCard(
-                      title: AppLocalizations.of(context).translate('emergency_help'),
-                      icon: Icons.sos,
-                      onTap: _navigateToEmergencyHelp,
-                    ),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_soil'), Icons.landscape, _navigateToSoilHealth),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_climate'), Icons.wb_sunny_outlined, _navigateToClimate),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_fertilizer'), Icons.science, _navigateToFertilizer),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_irrigation'), Icons.water_drop, _navigateToIrrigation),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_disease'), Icons.pest_control, _navigateToCropHealth),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_community'), Icons.people, _navigateToCommunity),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_market'), Icons.currency_rupee, _navigateToMarket),
+                    _buildGridItem(AppLocalizations.of(context).translate('grid_assistant'), Icons.auto_awesome, _navigateToAiAssistant),
                   ],
                 ),
               ),
@@ -301,6 +337,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGridItem(String title, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: Colors.green.shade700, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

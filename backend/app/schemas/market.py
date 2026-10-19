@@ -15,7 +15,16 @@ class MarketPrice(BaseModel):
     modalPrice: float
     unit: str = "₹/Quintal"
 
+class MarketAIInsight(BaseModel):
+    headline: str
+    bestMarket: Optional[str] = None
+    priceTrend: str
+    advisory: str
+    storageTip: Optional[str] = None
+
 class MarketResponse(BaseModel):
     data: List[MarketPrice]
     status: str
     message: str
+    insight: Optional[MarketAIInsight] = None
+

@@ -5,7 +5,6 @@ import '../../../../core/services/network_service.dart';
 import '../../../profile/services/profile_storage_service.dart';
 import 'main_screen.dart';
 import '../widgets/language_tile.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../profile/presentation/screens/initial_profile_setup_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
@@ -77,21 +76,19 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
     await widget.storageService.saveSelectedLanguage(_selectedLanguageId!);
     await widget.storageService.setHasCompletedLanguageSelection(true);
 
+    // Keep FarmerProfile synchronized with newly chosen app language
+    final currentProfile = widget.profileStorageService.getFarmerProfile();
+    if (currentProfile != null) {
+      await widget.profileStorageService.saveFarmerProfile(
+        currentProfile.copyWith(preferredLanguage: _selectedLanguageId!),
+      );
+    }
+
     if (mounted) {
       if (widget.isFromSettings) {
         Navigator.of(context).pop();
       } else {
-        if (!widget.storageService.isLoggedIn()) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => LoginScreen(
-                storageService: widget.storageService,
-                profileStorageService: widget.profileStorageService,
-                networkService: widget.networkService,
-              ),
-            ),
-          );
-        } else {
+        {
           final profile = widget.profileStorageService.getFarmerProfile();
           if (profile == null || profile.name.isEmpty || profile.location.isEmpty) {
             Navigator.of(context).pushReplacement(

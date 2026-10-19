@@ -139,7 +139,7 @@ class _BackendSettingsScreenState extends State<BackendSettingsScreen> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      _urlController.text = 'http://10.10.10.10:8000';
+                      _urlController.text = 'https://rythumitra-ai-86bt.onrender.com';
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade300),
                     child: const Text('Restore Default', style: TextStyle(color: Colors.black)),

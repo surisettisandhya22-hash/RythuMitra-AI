@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../domain/models/market_price.dart';
+import '../../domain/models/market_ai_insight.dart';
 import '../../services/market_service.dart';
+
 import '../../../ai_assistant/presentation/screens/ai_assistant_screen.dart';
 import '../../../voice/services/text_to_speech_service.dart';
 import '../../../../core/services/storage_service.dart';
@@ -26,6 +28,7 @@ class MarketScreen extends StatefulWidget {
 class _MarketScreenState extends State<MarketScreen> {
   late TextEditingController _searchController;
   List<MarketPrice> _prices = [];
+  MarketAIInsightModel? _insight;
   bool _isLoading = false;
   String _currentSearch = '';
   String? _errorMessage;
@@ -64,9 +67,6 @@ class _MarketScreenState extends State<MarketScreen> {
 
     _searchController = TextEditingController(text: startCrop ?? '');
     if (startCrop != null && startCrop.isNotEmpty) {
-      // Need to defer the fetch slightly if it causes build issues, but it should be fine here.
-      // Actually fetchPrices calls setState, which is fine in initState before build.
-      // However, to be safe from some network errors trying to show snackbars, etc.:
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _fetchPrices(startCrop!);
@@ -87,6 +87,7 @@ class _MarketScreenState extends State<MarketScreen> {
     if (!widget.networkService.isOnline.value) {
        setState(() {
          _prices = [];
+         _insight = null;
          _errorMessage = AppLocalizations.of(context).translate('feature_requires_internet') == 'feature_requires_internet' ? 'This feature requires an internet connection.' : AppLocalizations.of(context).translate('feature_requires_internet');
          _isLoading = false;
          _isOfflineCached = true;
@@ -98,19 +99,23 @@ class _MarketScreenState extends State<MarketScreen> {
       _isLoading = true;
       _currentSearch = crop;
       _errorMessage = null;
+      _insight = null;
       _isOfflineCached = false;
     });
 
     try {
       final district = _selectedLocation ?? _getDistrict();
-      final prices = await widget.marketService.getMarketPrices(
+      final lang = Localizations.localeOf(context).languageCode;
+      final result = await widget.marketService.getMarketPricesWithInsight(
         crop: crop.trim(),
         district: district,
+        language: lang,
       );
       
       if (mounted) {
         setState(() {
-          _prices = prices;
+          _prices = result.prices;
+          _insight = result.insight;
           _isLoading = false;
         });
       }
@@ -139,6 +144,7 @@ class _MarketScreenState extends State<MarketScreen> {
       }
     }
   }
+
 
   Future<List<MarketPrice>> _tryGetCachedPrices(String crop, String? district) async {
     // If the service had a public cache we could access it. Since we can't easily,
@@ -452,11 +458,14 @@ class _MarketScreenState extends State<MarketScreen> {
                         ],
                       ),
                     ),
+                  if (_insight != null)
+                    _buildAIInsightBanner(_insight!),
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       itemCount: _prices.length,
                       itemBuilder: (context, index) {
+
                   final item = _prices[index];
                   return Card(
                     elevation: 2,
@@ -490,6 +499,43 @@ class _MarketScreenState extends State<MarketScreen> {
                             ],
                           ),
                           const Divider(height: 24),
+                          // Price Per KG prominent badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.scale, size: 18, color: Colors.green.shade800),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Rate per Kilogram (1 KG):',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.green.shade900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '₹${(item.modalPrice / 100.0).toStringAsFixed(item.modalPrice % 100 == 0 ? 0 : 1)} / kg',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -502,7 +548,8 @@ class _MarketScreenState extends State<MarketScreen> {
                                       : AppLocalizations.of(context).translate('minimum_price'),
                                     style: const TextStyle(color: Colors.grey, fontSize: 12)
                                   ),
-                                  Text('₹${item.minPrice}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('₹${item.minPrice.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('₹${(item.minPrice / 100.0).toStringAsFixed(item.minPrice % 100 == 0 ? 0 : 1)}/kg', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
                                 ],
                               ),
                               Column(
@@ -514,7 +561,8 @@ class _MarketScreenState extends State<MarketScreen> {
                                       : AppLocalizations.of(context).translate('modal_price'),
                                     style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)
                                   ),
-                                  Text('₹${item.modalPrice}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green)),
+                                  Text('₹${item.modalPrice.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green)),
+                                  Text('/ Quintal (100 kg)', style: TextStyle(color: Colors.green.shade700, fontSize: 10)),
                                 ],
                               ),
                               Column(
@@ -526,7 +574,8 @@ class _MarketScreenState extends State<MarketScreen> {
                                       : AppLocalizations.of(context).translate('maximum_price'),
                                     style: const TextStyle(color: Colors.grey, fontSize: 12)
                                   ),
-                                  Text('₹${item.maxPrice}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('₹${item.maxPrice.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('₹${(item.maxPrice / 100.0).toStringAsFixed(item.maxPrice % 100 == 0 ? 0 : 1)}/kg', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
                                 ],
                               ),
                             ],
@@ -591,4 +640,110 @@ class _MarketScreenState extends State<MarketScreen> {
       ),
     );
   }
+
+  Widget _buildAIInsightBanner(MarketAIInsightModel insight) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F8E9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFA5D6A7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: Color(0xFF2E7D32), size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context).translate('ai_mandi_advisor'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Color(0xFF2E7D32),
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E7D32),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  insight.priceTrend,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            insight.headline,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: Colors.black87,
+            ),
+          ),
+          if (insight.bestMarket != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${AppLocalizations.of(context).translate('best_mandi')}: ${insight.bestMarket!}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: Color(0xFF1B5E20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 6),
+          Text(
+            insight.advisory,
+            style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.3),
+          ),
+          if (insight.storageTip != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.lightbulb_outline, size: 14, color: Colors.orange),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    insight.storageTip!,
+                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
+

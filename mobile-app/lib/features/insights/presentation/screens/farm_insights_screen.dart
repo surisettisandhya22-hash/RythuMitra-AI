@@ -12,6 +12,8 @@ import '../../../profile/presentation/screens/farm_activity_screen.dart';
 import '../../../tasks/presentation/screens/alerts_screen.dart';
 import '../../../planner/services/task_storage_service.dart';
 import '../../../planner/presentation/screens/daily_planner_screen.dart';
+import '../../../irrigation/presentation/screens/irrigation_screen.dart';
+import '../../../schemes/presentation/screens/schemes_screen.dart';
 
 class FarmInsightsScreen extends StatefulWidget {
   final ProfileStorageService profileStorageService;
@@ -312,6 +314,10 @@ class _FarmInsightsScreenState extends State<FarmInsightsScreen> {
           _buildCropOverviewCard(),
           const SizedBox(height: 16),
           _buildActivityOverviewCard(),
+          const SizedBox(height: 16),
+          _buildIrrigationOverviewCard(),
+          const SizedBox(height: 16),
+          _buildSchemesOverviewCard(),
           const SizedBox(height: 16),
           _buildTaskOverviewCard(),
           const SizedBox(height: 16),
@@ -726,6 +732,94 @@ class _FarmInsightsScreenState extends State<FarmInsightsScreen> {
         ),
         Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       ],
+    );
+  }
+
+  Widget _buildIrrigationOverviewCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => IrrigationScreen(
+            storageService: widget.storageService,
+            profileStorageService: widget.profileStorageService,
+            networkService: widget.networkService,
+          ),
+        ));
+      },
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Icon(Icons.water_drop, color: Colors.blue.shade700, size: 32),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Irrigation Agent',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Check soil moisture and watering advice',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSchemesOverviewCard() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => SchemesScreen(
+            storageService: widget.storageService,
+            profileStorageService: widget.profileStorageService,
+            networkService: widget.networkService,
+          ),
+        ));
+      },
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Icon(Icons.account_balance, color: Colors.teal.shade700, size: 32),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Government Schemes',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'View available subsidies, loans & insurance',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

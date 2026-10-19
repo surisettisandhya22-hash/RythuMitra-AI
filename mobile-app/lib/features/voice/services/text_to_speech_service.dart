@@ -36,12 +36,16 @@ class TextToSpeechService {
     await init();
     
     final localeId = LanguageUtils.getLocaleForLanguage(languageId);
-    
+
     // Check if the language is available on the device
-    final isLanguageAvailable = await _flutterTts.isLanguageAvailable(localeId);
-    if (isLanguageAvailable != true) {
-      debugPrint('TTS Error: Voice not currently available for locale: $localeId');
-      return false; // Let the caller know it failed so they can show an error or reset UI
+    try {
+      final dynamic isLanguageAvailable = await _flutterTts.isLanguageAvailable(localeId);
+      // flutter_tts returns 1 or true if supported on Android / iOS
+      if (isLanguageAvailable != true && isLanguageAvailable != 1) {
+        debugPrint('TTS Warning: Voice availability check returned: $isLanguageAvailable for $localeId, attempting playback anyway');
+      }
+    } catch (e) {
+      debugPrint('TTS check error: $e');
     }
 
     await _flutterTts.setLanguage(localeId);

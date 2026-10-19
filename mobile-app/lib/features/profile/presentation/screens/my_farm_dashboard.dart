@@ -15,6 +15,7 @@ import '../../../../features/foundation/presentation/widgets/voice_button.dart';
 import '../../../../features/voice/presentation/widgets/global_listen_button.dart';
 
 import 'edit_profile_screen.dart';
+import 'farmer_profile_details_screen.dart';
 import 'farm_activity_screen.dart';
 
 import 'farm_financial_summary_screen.dart';
@@ -32,6 +33,8 @@ import '../../../../features/insights/presentation/screens/farm_insights_screen.
 import '../../../../features/alerts_center/presentation/screens/farm_alerts_center_screen.dart';
 import '../../../reports/presentation/screens/farm_overview_screen.dart';
 import '../../../weather/data/repositories/weather_repository.dart';
+import '../../../ai_assistant/presentation/screens/ai_assistant_screen.dart';
+import '../../../weather/presentation/screens/weather_screen.dart';
 
 class MyFarmDashboard extends StatefulWidget {
   final StorageService storageService;
@@ -128,6 +131,18 @@ class _MyFarmDashboardState extends State<MyFarmDashboard> with RouteAware {
       widget.onNavigateToVoiceCommand!();
     } else if (widget.onNavigateToAiAssistant != null) {
       widget.onNavigateToAiAssistant!();
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AIAssistantScreen(
+            storageService: widget.storageService,
+            profileStorageService: widget.profileStorageService,
+            networkService: widget.networkService,
+            weatherRepository: widget.weatherRepository,
+            autoStartListening: true,
+          ),
+        ),
+      );
     }
   }
 
@@ -223,7 +238,17 @@ class _MyFarmDashboardState extends State<MyFarmDashboard> with RouteAware {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const AppHeader(),
+            AppHeader(
+              onProfileTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => FarmerProfileDetailsScreen(
+                      profileStorageService: widget.profileStorageService,
+                    ),
+                  ),
+                );
+              },
+            ),
             
             // Farmer Greeting
             Padding(
@@ -780,6 +805,35 @@ class _MyFarmDashboardState extends State<MyFarmDashboard> with RouteAware {
                       ),
                     ));
                     _refreshData();
+                  }
+                ),
+                _buildActionChip(
+                  icon: Icons.wb_sunny_outlined,
+                  label: t.translate('grid_climate') == 'grid_climate' ? 'Climate & Weather' : t.translate('grid_climate'),
+                  color: Colors.amber.shade800,
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => WeatherScreen(
+                        weatherRepository: widget.weatherRepository,
+                        profileStorageService: widget.profileStorageService,
+                        networkService: widget.networkService,
+                      ),
+                    ));
+                  },
+                ),
+                _buildActionChip(
+                  icon: Icons.auto_awesome, 
+                  label: t.translate('grid_assistant') == 'grid_assistant' ? 'AI Assistant' : t.translate('grid_assistant'), 
+                  color: Colors.teal.shade700,
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => AIAssistantScreen(
+                        storageService: widget.storageService,
+                        profileStorageService: widget.profileStorageService,
+                        networkService: widget.networkService,
+                        weatherRepository: widget.weatherRepository,
+                      ),
+                    ));
                   }
                 ),
                 _buildActionChip(

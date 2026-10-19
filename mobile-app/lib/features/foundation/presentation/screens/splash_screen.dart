@@ -4,7 +4,6 @@ import '../../../../core/services/network_service.dart';
 import '../../../profile/services/profile_storage_service.dart';
 import 'language_selection_screen.dart';
 import 'main_screen.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../profile/presentation/screens/initial_profile_setup_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -40,16 +39,6 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => LanguageSelectionScreen(
-            storageService: widget.storageService,
-            profileStorageService: widget.profileStorageService,
-            networkService: widget.networkService,
-          ),
-        ),
-      );
-    } else if (!widget.storageService.isLoggedIn()) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => LoginScreen(
             storageService: widget.storageService,
             profileStorageService: widget.profileStorageService,
             networkService: widget.networkService,

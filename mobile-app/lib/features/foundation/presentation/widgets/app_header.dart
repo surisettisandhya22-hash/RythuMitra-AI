@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 
 class AppHeader extends StatelessWidget {
   final VoidCallback? onSearchTap;
-  const AppHeader({super.key, this.onSearchTap});
+  final VoidCallback? onProfileTap;
+
+  const AppHeader({
+    super.key,
+    this.onSearchTap,
+    this.onProfileTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +43,22 @@ class AppHeader extends StatelessWidget {
                   onPressed: onSearchTap,
                 ),
               const SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: Colors.green.shade100,
-                child: Icon(
-                  Icons.person,
-                  color: Colors.green.shade700,
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onProfileTap,
+                  child: Tooltip(
+                    message: 'Profile',
+                    child: CircleAvatar(
+                      backgroundColor: Colors.green.shade100,
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

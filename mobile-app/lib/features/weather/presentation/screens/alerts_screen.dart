@@ -94,11 +94,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
           child: Icon(icon, color: color),
         ),
         title: Text(
-          AppLocalizations.of(context).translate(alert.titleKey),
+          alert.customTitle ?? (AppLocalizations.of(context).translate(alert.titleKey) == alert.titleKey ? alert.titleKey : AppLocalizations.of(context).translate(alert.titleKey)),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          AppLocalizations.of(context).translate(alert.descriptionKey),
+          alert.customDescription ?? (AppLocalizations.of(context).translate(alert.descriptionKey) == alert.descriptionKey ? alert.descriptionKey : AppLocalizations.of(context).translate(alert.descriptionKey)),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),

@@ -27,6 +27,7 @@ import '../../../information/presentation/screens/help_center_screen.dart';
 import '../../../tasks/services/reminder_storage_service.dart';
 import '../../../alerts_center/presentation/screens/farm_alerts_center_screen.dart';
 import '../../../insights/presentation/screens/farm_insights_screen.dart';
+import '../../../ai_assistant/presentation/screens/ai_assistant_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final StorageService storageService;
@@ -67,9 +68,17 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _navigateToAiAssistantWithVoice() {
-    setState(() {
-      _currentIndex = 1;
-    });
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AIAssistantScreen(
+          storageService: widget.storageService,
+          profileStorageService: widget.profileStorageService,
+          networkService: widget.networkService,
+          weatherRepository: _weatherRepository,
+          autoStartListening: true,
+        ),
+      ),
+    );
   }
 
   void _navigateToVoiceCommand() {
@@ -109,6 +118,10 @@ class _MainScreenState extends State<MainScreen> {
       case 'weather':
         // No direct weather tab, switch to home where weather is visible
         _onTabTapped(0);
+        break;
+      case 'ai_assistant':
+      case 'assistant':
+        _navigateToAiAssistantWithVoice();
         break;
 
       case 'crop_health':

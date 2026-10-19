@@ -133,10 +133,53 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
                           '${AppLocalizations.of(context).translate('crop')}: ${widget.scanResult.cropName}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
+                      const SizedBox(height: 6),
+                      // Severity & Confidence Badges
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (widget.scanResult.severityLevel?.toLowerCase().contains('high') == true ||
+                                      widget.scanResult.severityLevel?.toLowerCase().contains('severe') == true)
+                                  ? Colors.red.shade100
+                                  : Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Severity: ${widget.scanResult.severityLevel ?? "Moderate"}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: (widget.scanResult.severityLevel?.toLowerCase().contains('high') == true ||
+                                        widget.scanResult.severityLevel?.toLowerCase().contains('severe') == true)
+                                    ? Colors.red.shade900
+                                    : Colors.orange.shade900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Confidence: ${widget.scanResult.confidenceScore ?? "85%"}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         widget.scanResult.summary,
-                        style: TextStyle(fontSize: 15, color: Colors.grey.shade800),
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton.icon(
@@ -156,7 +199,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
               ],
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             
             // Uncertainty warning
             Container(
@@ -180,7 +223,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
               ),
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             _buildSection(
               context, 
@@ -197,6 +240,34 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
               color: Colors.blue,
               items: widget.scanResult.visibleSymptoms,
             ),
+
+            // Dual Treatment Options
+            if (widget.scanResult.treatmentOptions != null) ...[
+              if (widget.scanResult.treatmentOptions!.organicTreatment.isNotEmpty)
+                _buildSection(
+                  context,
+                  title: 'Biological & Organic Remedies (సేంద్రీయ నివారణ)',
+                  icon: Icons.eco,
+                  color: Colors.green,
+                  items: widget.scanResult.treatmentOptions!.organicTreatment,
+                ),
+              if (widget.scanResult.treatmentOptions!.chemicalTreatment.isNotEmpty)
+                _buildSection(
+                  context,
+                  title: 'Chemical Control (రసాయన నివారణ చర్యలు)',
+                  icon: Icons.science,
+                  color: Colors.indigo,
+                  items: widget.scanResult.treatmentOptions!.chemicalTreatment,
+                ),
+              if (widget.scanResult.treatmentOptions!.preventiveMeasures.isNotEmpty)
+                _buildSection(
+                  context,
+                  title: 'Preventive Farm Practices (ముందస్తు జాగ్రత్తలు)',
+                  icon: Icons.shield,
+                  color: Colors.teal,
+                  items: widget.scanResult.treatmentOptions!.preventiveMeasures,
+                ),
+            ],
             
             _buildSection(
               context, 
@@ -205,6 +276,7 @@ class _AnalysisResultScreenState extends State<AnalysisResultScreen> {
               color: Colors.green,
               items: widget.scanResult.recommendedNextSteps,
             ),
+
             
             Card(
               elevation: 0,

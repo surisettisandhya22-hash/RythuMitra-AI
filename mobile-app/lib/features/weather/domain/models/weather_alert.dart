@@ -16,6 +16,8 @@ class WeatherAlert {
   final AlertType type;
   final String titleKey;
   final String descriptionKey;
+  final String? customTitle;
+  final String? customDescription;
   final AlertSeverity severity;
   final DateTime timestamp;
   final Map<String, dynamic> metadata;
@@ -26,6 +28,8 @@ class WeatherAlert {
     required this.type,
     required this.titleKey,
     required this.descriptionKey,
+    this.customTitle,
+    this.customDescription,
     required this.severity,
     required this.timestamp,
     this.metadata = const {},
@@ -38,6 +42,8 @@ class WeatherAlert {
       'type': type.name,
       'titleKey': titleKey,
       'descriptionKey': descriptionKey,
+      'customTitle': customTitle,
+      'customDescription': customDescription,
       'severity': severity.name,
       'timestamp': timestamp.toIso8601String(),
       'metadata': metadata,
@@ -51,6 +57,8 @@ class WeatherAlert {
       type: AlertType.values.firstWhere((e) => e.name == json['type']),
       titleKey: json['titleKey'] as String,
       descriptionKey: json['descriptionKey'] as String,
+      customTitle: json['customTitle'] as String?,
+      customDescription: json['customDescription'] as String?,
       severity: AlertSeverity.values.firstWhere((e) => e.name == json['severity']),
       timestamp: DateTime.parse(json['timestamp'] as String),
       metadata: Map<String, dynamic>.from(json['metadata'] ?? {}),

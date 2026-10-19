@@ -13,6 +13,8 @@ import '../widgets/ai_thinking_indicator.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../weather/data/repositories/weather_repository.dart';
 import '../../../../core/services/network_service.dart';
+import '../../../../shared/models/language.dart';
+import '../../../../core/utils/language_utils.dart';
 
 import '../../../profile/data/models/crop_profile.dart';
 
@@ -55,12 +57,30 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   bool _isListening = false;
   String? _speakingMessageId;
   bool _backendUnavailable = false;
+  late String _activeLanguageId;
 
   late List<String> _suggestions;
+
+  final List<Language> _supportedLanguages = const [
+    Language(id: 'en', nativeName: 'English', englishName: 'English'),
+    Language(id: 'te', nativeName: 'తెలుగు', englishName: 'Telugu'),
+    Language(id: 'hi', nativeName: 'हिन्दी', englishName: 'Hindi'),
+    Language(id: 'ta', nativeName: 'தமிழ்', englishName: 'Tamil'),
+    Language(id: 'kn', nativeName: 'ಕನ್ನಡ', englishName: 'Kannada'),
+    Language(id: 'ml', nativeName: 'മലയാളം', englishName: 'Malayalam'),
+    Language(id: 'mr', nativeName: 'मराठी', englishName: 'Marathi'),
+    Language(id: 'bn', nativeName: 'বাংলা', englishName: 'Bengali'),
+    Language(id: 'gu', nativeName: 'ગુજરાતી', englishName: 'Gujarati'),
+    Language(id: 'pa', nativeName: 'ਪੰਜਾਬੀ', englishName: 'Punjabi'),
+  ];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _refreshSuggestions();
+  }
+
+  void _refreshSuggestions() {
     _suggestions = [
       AppLocalizations.of(context).translate('sug_my_crop'),
       AppLocalizations.of(context).translate('sug_weather_quick'),
@@ -71,9 +91,47 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     ];
   }
 
+  Future<void> _changeLanguage(String newLangId) async {
+    if (_activeLanguageId == newLangId) return;
+    
+    // Stop any ongoing speech or recognition
+    if (_speakingMessageId != null) {
+      await _handleStopTTS();
+    }
+    if (_isListening) {
+      await _speechService.stopListening();
+      _isListening = false;
+    }
+
+    await widget.storageService.saveSelectedLanguage(newLangId);
+    
+    // Also sync farmer profile if present
+    final currentProfile = widget.profileStorageService?.getFarmerProfile();
+    if (currentProfile != null) {
+      await widget.profileStorageService?.saveFarmerProfile(
+        currentProfile.copyWith(preferredLanguage: newLangId),
+      );
+    }
+
+    if (mounted) {
+      setState(() {
+        _activeLanguageId = newLangId;
+        _refreshSuggestions();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Language changed to ${LanguageUtils.getLanguageName(newLangId)}'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.green.shade800,
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _activeLanguageId = widget.storageService.getSelectedLanguage() ?? 'en';
     if (widget.profileStorageService != null) {
       _farmMemoryService = FarmMemoryService(profileStorageService: widget.profileStorageService!);
     } else {
@@ -122,7 +180,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   final ApiService _apiService = ApiService();
 
-  Future<void> _handleSendMessage(String text) async {
+  Future<void> _handleSendMessage(String text, {bool speakResponse = false}) async {
     if (!widget.networkService.isOnline.value) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context).translate('feature_requires_internet') == 'feature_requires_internet' ? 'This feature requires an internet connection.' : AppLocalizations.of(context).translate('feature_requires_internet'))),
@@ -134,9 +192,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     
     if (_isListening) {
       await _speechService.stopListening();
-      setState(() {
-        _isListening = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isListening = false;
+        });
+      }
     }
 
     if (_speakingMessageId != null) {
@@ -161,7 +221,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
 
-    final languageId = widget.storageService.getSelectedLanguage() ?? 'en';
+    final languageId = _activeLanguageId;
     
     Map<String, dynamic>? contextPayload;
     if (_farmMemoryService != null) {
@@ -212,7 +272,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         _isThinking = false;
       });
 
-      if (widget.storageService.getAutoSpeakEnabled()) {
+      if (speakResponse || widget.storageService.getAutoSpeakEnabled()) {
         _handlePlayTTS(aiMessage.id, aiResponseText);
       }
     } catch (e) {
@@ -255,7 +315,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       _speakingMessageId = messageId;
     });
 
-    final languageId = widget.storageService.getSelectedLanguage() ?? 'en';
+    final languageId = _activeLanguageId;
     final success = await _ttsService.speak(text, languageId);
 
     if (!success && mounted) {
@@ -264,7 +324,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Voice is not currently available for this language on your device.'),
+          content: Text('Voice is not currently available for ${LanguageUtils.getLanguageName(_activeLanguageId)} on this device.'),
           backgroundColor: Colors.orange.shade800,
         ),
       );
@@ -283,21 +343,51 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   void _handleVoiceTap() async {
     if (_isListening) {
       await _speechService.stopListening();
-      setState(() {
-        _isListening = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isListening = false;
+        });
+      }
+      final currentText = _textController.text.trim();
+      if (currentText.isNotEmpty) {
+        _handleSendMessage(currentText, speakResponse: true);
+      }
       return;
     }
 
-    final languageId = widget.storageService.getSelectedLanguage() ?? 'en';
+    final languageId = _activeLanguageId;
     
     final started = await _speechService.startListening(
       languageId: languageId,
       onResult: (recognizedText) {
-        setState(() {
-          _textController.text = recognizedText;
-          // Note: we don't auto-send here to let the farmer review
-        });
+        if (mounted) {
+          setState(() {
+            _textController.text = recognizedText;
+          });
+        }
+      },
+      onFinalResult: (finalText) {
+        if (mounted && finalText.trim().isNotEmpty) {
+          setState(() {
+            _isListening = false;
+            _textController.text = finalText.trim();
+          });
+          _speechService.stopListening();
+          _handleSendMessage(finalText.trim(), speakResponse: true);
+        }
+      },
+      onStatus: (status) {
+        if (status == 'notListening' || status == 'done') {
+          if (mounted && _isListening) {
+            setState(() {
+              _isListening = false;
+            });
+            final pendingText = _textController.text.trim();
+            if (pendingText.isNotEmpty && !_isThinking) {
+              _handleSendMessage(pendingText, speakResponse: true);
+            }
+          }
+        }
       },
     );
 
@@ -386,6 +476,72 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Change Language',
+            initialValue: _activeLanguageId,
+            onSelected: (String langId) {
+              _changeLanguage(langId);
+            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            itemBuilder: (BuildContext context) {
+              return _supportedLanguages.map((Language lang) {
+                final isSelected = lang.id == _activeLanguageId;
+                return PopupMenuItem<String>(
+                  value: lang.id,
+                  child: Row(
+                    children: [
+                      Text(
+                        lang.nativeName,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected ? Colors.green.shade800 : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '(${lang.englishName})',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected ? Colors.green.shade700 : Colors.grey.shade600,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (isSelected)
+                        Icon(Icons.check, size: 18, color: Colors.green.shade700),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.translate, size: 16, color: Colors.white),
+                  const SizedBox(width: 4),
+                  Text(
+                    _supportedLanguages.firstWhere(
+                      (l) => l.id == _activeLanguageId,
+                      orElse: () => const Language(id: 'en', nativeName: 'English', englishName: 'English'),
+                    ).nativeName,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.delete_sweep),
             tooltip: AppLocalizations.of(context).translate('clear_chat') == 'clear_chat' ? 'Clear Chat' : AppLocalizations.of(context).translate('clear_chat'),

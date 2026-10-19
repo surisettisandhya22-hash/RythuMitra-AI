@@ -32,8 +32,8 @@ class AlertDetailsScreen extends StatelessWidget {
   }
 
   void _listen(BuildContext context) async {
-    final title = AppLocalizations.of(context).translate(alert.titleKey);
-    final desc = AppLocalizations.of(context).translate(alert.descriptionKey);
+    final title = alert.customTitle ?? (AppLocalizations.of(context).translate(alert.titleKey) == alert.titleKey ? alert.titleKey : AppLocalizations.of(context).translate(alert.titleKey));
+    final desc = alert.customDescription ?? (AppLocalizations.of(context).translate(alert.descriptionKey) == alert.descriptionKey ? alert.descriptionKey : AppLocalizations.of(context).translate(alert.descriptionKey));
     
     final voiceService = TextToSpeechService();
     await voiceService.init();
@@ -46,8 +46,8 @@ class AlertDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = AppLocalizations.of(context).translate(alert.titleKey);
-    final desc = AppLocalizations.of(context).translate(alert.descriptionKey);
+    final title = alert.customTitle ?? (AppLocalizations.of(context).translate(alert.titleKey) == alert.titleKey ? alert.titleKey : AppLocalizations.of(context).translate(alert.titleKey));
+    final desc = alert.customDescription ?? (AppLocalizations.of(context).translate(alert.descriptionKey) == alert.descriptionKey ? alert.descriptionKey : AppLocalizations.of(context).translate(alert.descriptionKey));
 
     IconData icon = Icons.info;
     Color color = Colors.blue;

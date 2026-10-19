@@ -12,6 +12,7 @@ import '../../../settings/presentation/screens/voice_settings_screen.dart';
 import '../../../settings/presentation/screens/backup_restore_screen.dart';
 import '../../../settings/presentation/screens/backend_settings_screen.dart';
 import '../../../information/presentation/screens/help_center_screen.dart';
+import '../../../ai_utilities/presentation/screens/ai_utilities_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   final StorageService storageService;
@@ -27,10 +28,12 @@ class MoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('More'),
+        title: Text(t.translate('nav_profile')),
         backgroundColor: Colors.green.shade700,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -38,12 +41,31 @@ class MoreScreen extends StatelessWidget {
       body: ListView(
         children: [
           const SizedBox(height: 16),
-          _buildSectionHeader('Preferences'),
+          _buildSectionHeader(t.translate('section_smart_tools')),
+          _buildMenuItem(
+            context,
+            icon: Icons.auto_awesome,
+            title: t.translate('menu_ai_utilities'),
+            subtitle: t.translate('menu_ai_utilities_sub'),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AiUtilitiesScreen(
+                    storageService: storageService,
+                    profileStorageService: profileStorageService,
+                    networkService: networkService,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(t.translate('section_preferences')),
           _buildMenuItem(
             context,
             icon: Icons.language,
-            title: 'Language',
-            subtitle: 'Change app language',
+            title: t.translate('menu_language'),
+            subtitle: t.translate('menu_language_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -60,8 +82,8 @@ class MoreScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             icon: Icons.wifi_tethering,
-            title: 'Backend Connection',
-            subtitle: 'Configure local server connection',
+            title: t.translate('menu_backend'),
+            subtitle: t.translate('menu_backend_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -73,8 +95,8 @@ class MoreScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             icon: Icons.record_voice_over,
-            title: 'Voice Settings',
-            subtitle: 'Voice speed, gender, and feedback',
+            title: t.translate('menu_voice'),
+            subtitle: t.translate('menu_voice_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -86,8 +108,8 @@ class MoreScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             icon: Icons.cloud_sync,
-            title: AppLocalizations.of(context).translate('backup_restore'),
-            subtitle: 'Backup and restore farm data',
+            title: t.translate('backup_restore'),
+            subtitle: t.translate('menu_backup_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -101,12 +123,12 @@ class MoreScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 24),
-          _buildSectionHeader('Support'),
+          _buildSectionHeader(t.translate('section_support')),
           _buildMenuItem(
             context,
             icon: Icons.help_outline,
-            title: 'Help Center',
-            subtitle: 'App guide and FAQs',
+            title: t.translate('menu_help'),
+            subtitle: t.translate('menu_help_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -120,8 +142,8 @@ class MoreScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             icon: Icons.sos,
-            title: AppLocalizations.of(context).translate('emergency_help'),
-            subtitle: 'Important contacts & emergency',
+            title: t.translate('emergency_help'),
+            subtitle: t.translate('menu_emergency_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -136,13 +158,13 @@ class MoreScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             icon: Icons.info_outline,
-            title: 'About RythuMitra',
-            subtitle: 'App version and details',
+            title: t.translate('menu_about'),
+            subtitle: t.translate('menu_about_sub'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const ActionPlaceholderScreen(
-                    title: 'About RythuMitra',
+                  builder: (_) => ActionPlaceholderScreen(
+                    title: t.translate('menu_about'),
                     icon: Icons.info_outline,
                   ),
                 ),
